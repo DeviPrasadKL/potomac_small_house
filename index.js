@@ -15,7 +15,7 @@
  */
 'use strict';
 
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
   var Marzipano = window.Marzipano;
   var bowser = window.bowser;
   var screenfull = window.screenfull;
@@ -24,11 +24,14 @@
   // Grab elements from DOM.
   var panoElement = document.querySelector('#pano');
   var sceneNameElement = document.querySelector('#titleBar .sceneName');
-  var sceneListElement = document.querySelector('#sceneList');
-  var sceneElements = document.querySelectorAll('#sceneList .scene');
-  var sceneListToggleElement = document.querySelector('#sceneListToggle');
   var autorotateToggleElement = document.querySelector('#autorotateToggle');
   var fullscreenToggleElement = document.querySelector('#fullscreenToggle');
+
+  // Initialize only if elements exist
+  if (!panoElement || !sceneNameElement || !autorotateToggleElement || !fullscreenToggleElement) {
+    console.error('Required elements not found');
+    return;
+  }
 
   // Detect desktop or mobile mode.
   if (window.matchMedia) {
@@ -137,88 +140,149 @@
     document.body.classList.add('fullscreen-disabled');
   }
 
-  // Set handler for scene list toggle.
-  sceneListToggleElement.addEventListener('click', toggleSceneList);
-
-  // Start with the scene list open on desktop.
-  if (!document.body.classList.contains('mobile')) {
-    showSceneList();
-  }
-
   // Set handler for scene switch.
-  scenes.forEach(function(scene) {
-    var el = document.querySelector('#sceneList .scene[data-id="' + scene.data.id + '"]');
-    el.addEventListener('click', function() {
-      switchScene(scene);
-      // On mobile, hide scene list after selecting a scene.
-      if (document.body.classList.contains('mobile')) {
-        hideSceneList();
+  if (scenes.length > 0) {
+    // Organize scenes into rooms and floors
+    var roomsContainer = document.querySelector('.rooms-container');
+    var floorsContainer = document.querySelector('.floors-container');
+    var roomsList = document.getElementById('roomsList');
+    var floorsList = document.getElementById('floorsList');
+    var roomsToggle = document.getElementById('roomsToggle');
+    var floorsToggle = document.getElementById('floorsToggle');
+
+    // Sort scenes into floors
+    var floors = {};
+    scenes.forEach(function(scene) {
+      var floorMatch = scene.data.name.match(/(\d+)F$/);
+      var floor = floorMatch ? floorMatch[1] : '1';
+      if (!floors[floor]) {
+        floors[floor] = [];
+      }
+      floors[floor].push(scene);
+    });
+
+    // Create room items (initially hidden)
+    scenes.forEach(function(scene) {
+      var div = document.createElement('div');
+      div.className = 'room-item';
+      
+      // Remove floor suffix for display
+      div.textContent = scene.data.name.replace(/[-]?\d+F$/, '');
+      
+      // Safely extract floor number with a fallback to '1'
+      var floorMatch = scene.data.name.match(/(\d+)F$/);
+      var floorNumber = floorMatch ? floorMatch[1] : '1';
+      div.setAttribute('data-floor', floorNumber);
+      
+      div.style.display = 'none'; // Hide initially
+      div.addEventListener('click', function() {
+          switchScene(scene);
+        hideAllLists();
+      });
+      roomsContainer.appendChild(div);
+    });
+
+    // Create floor items
+    Object.keys(floors).sort().forEach(function(floor) {
+      var div = document.createElement('div');
+      div.className = 'floor-item';
+      div.textContent = floor + 'F';
+      div.addEventListener('click', function() {
+        // Hide all rooms first
+        document.querySelectorAll('.room-item').forEach(function(item) {
+          item.style.display = 'none';
+        });
+        // Show only rooms for this floor
+        document.querySelectorAll('.room-item[data-floor="' + floor + '"]').forEach(function(item) {
+          item.style.display = 'flex';
+        });
+        showRoomsList();
+        
+        // Update active state for floors
+        document.querySelectorAll('.floor-item').forEach(function(item) {
+          item.classList.remove('active');
+        });
+        div.classList.add('active');
+      });
+      floorsContainer.appendChild(div);
+    });
+
+    // Show rooms for the initial floor
+    var initialFloorMatch = scenes[0].data.name.match(/(\d+)F$/);
+    var initialFloor = initialFloorMatch ? initialFloorMatch[1] : '1';
+    document.querySelectorAll('.room-item[data-floor="' + initialFloor + '"]').forEach(function(item) {
+      item.style.display = 'flex';
+    });
+
+    // Toggle handlers
+    roomsToggle.addEventListener('click', function() {
+      if (roomsList.classList.contains('visible')) {
+        hideAllLists();
+      } else {
+        showRoomsList();
       }
     });
-  });
 
-  // DOM elements for view controls.
-  var viewUpElement = document.querySelector('#viewUp');
-  var viewDownElement = document.querySelector('#viewDown');
-  var viewLeftElement = document.querySelector('#viewLeft');
-  var viewRightElement = document.querySelector('#viewRight');
-  var viewInElement = document.querySelector('#viewIn');
-  var viewOutElement = document.querySelector('#viewOut');
-
-  // Dynamic parameters for controls.
-  var velocity = 0.7;
-  var friction = 3;
-
-  // Associate view controls with elements.
-  var controls = viewer.controls();
-  controls.registerMethod('upElement',    new Marzipano.ElementPressControlMethod(viewUpElement,     'y', -velocity, friction), true);
-  controls.registerMethod('downElement',  new Marzipano.ElementPressControlMethod(viewDownElement,   'y',  velocity, friction), true);
-  controls.registerMethod('leftElement',  new Marzipano.ElementPressControlMethod(viewLeftElement,   'x', -velocity, friction), true);
-  controls.registerMethod('rightElement', new Marzipano.ElementPressControlMethod(viewRightElement,  'x',  velocity, friction), true);
-  controls.registerMethod('inElement',    new Marzipano.ElementPressControlMethod(viewInElement,  'zoom', -velocity, friction), true);
-  controls.registerMethod('outElement',   new Marzipano.ElementPressControlMethod(viewOutElement, 'zoom',  velocity, friction), true);
-
-  function sanitize(s) {
-    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;');
+    floorsToggle.addEventListener('click', function() {
+      if (floorsList.classList.contains('visible')) {
+        hideAllLists();
+      } else {
+        showFloorsList();
+      }
+    });
   }
 
+  function showRoomsList() {
+    hideAllLists();
+    roomsList.classList.remove('hidden');
+    roomsList.classList.add('visible');
+  }
+
+  function showFloorsList() {
+    hideAllLists();
+    floorsList.classList.remove('hidden');
+    floorsList.classList.add('visible');
+  }
+
+  function hideAllLists() {
+    [roomsList, floorsList].forEach(function(list) {
+      if (list.classList.contains('visible')) {
+        list.classList.remove('visible');
+        // Wait for the transition to complete before hiding
+        setTimeout(function() {
+          list.classList.add('hidden');
+        }, 300); // Match this with your CSS transition time
+      }
+    });
+  }
+
+  // Update active states
+  function updateActiveStates(scene) {
+    document.querySelectorAll('.room-item').forEach(function(item) {
+      item.classList.toggle('active', item.textContent === scene.data.name);
+    });
+    
+    var floorMatch = scene.data.name.match(/(\d+)F$/);
+    var floor = floorMatch ? floorMatch[1] + 'F' : '1F';
+    document.querySelectorAll('.floor-item').forEach(function(item) {
+      item.classList.toggle('active', item.textContent === floor);
+    });
+  }
+
+  // Update the switchScene function to include active state updates
   function switchScene(scene) {
     stopAutorotate();
     scene.view.setParameters(scene.data.initialViewParameters);
     scene.scene.switchTo();
     startAutorotate();
     updateSceneName(scene);
-    updateSceneList(scene);
+    updateActiveStates(scene);
   }
 
   function updateSceneName(scene) {
-    sceneNameElement.innerHTML = sanitize(scene.data.name);
-  }
-
-  function updateSceneList(scene) {
-    for (var i = 0; i < sceneElements.length; i++) {
-      var el = sceneElements[i];
-      if (el.getAttribute('data-id') === scene.data.id) {
-        el.classList.add('current');
-      } else {
-        el.classList.remove('current');
-      }
-    }
-  }
-
-  function showSceneList() {
-    sceneListElement.classList.add('enabled');
-    sceneListToggleElement.classList.add('enabled');
-  }
-
-  function hideSceneList() {
-    sceneListElement.classList.remove('enabled');
-    sceneListToggleElement.classList.remove('enabled');
-  }
-
-  function toggleSceneList() {
-    sceneListElement.classList.toggle('enabled');
-    sceneListToggleElement.classList.toggle('enabled');
+    // Remove the -1F, -2F, -3F suffix for display
+    var displayName = scene.data.name.replace(/[-]?\d+F$/, '');
+    sceneNameElement.textContent = displayName;
   }
 
   function startAutorotate() {
@@ -245,7 +309,6 @@
   }
 
   function createLinkHotspotElement(hotspot) {
-
     // Create wrapper element to hold icon and tooltip.
     var wrapper = document.createElement('div');
     wrapper.classList.add('hotspot');
@@ -255,17 +318,26 @@
     var icon = document.createElement('img');
     icon.src = 'img/link.png';
     icon.classList.add('link-hotspot-icon');
+    icon.style.opacity = '0.4'; // Set initial opacity for inactive stated
 
     // Set rotation transform.
     var transformProperties = [ '-ms-transform', '-webkit-transform', 'transform' ];
     for (var i = 0; i < transformProperties.length; i++) {
-      var property = transformProperties[i];
-      icon.style[property] = 'rotate(' + hotspot.rotation + 'rad)';
+        var property = transformProperties[i];
+        icon.style[property] = 'rotate(' + hotspot.rotation + 'rad)';
     }
+
+    // Add mouse enter and leave event handlers to change opacity
+    wrapper.addEventListener('mouseenter', function() {
+        icon.style.opacity = '1'; // Increase opacity when mouse is active
+    });
+    wrapper.addEventListener('mouseleave', function() {
+        icon.style.opacity = '0.5'; // Decrease opacity when mouse is inactive
+    });
 
     // Add click event handler.
     wrapper.addEventListener('click', function() {
-      switchScene(findSceneById(hotspot.target));
+        switchScene(findSceneById(hotspot.target));
     });
 
     // Prevent touch and scroll events from reaching the parent element.
@@ -388,5 +460,4 @@
 
   // Display the initial scene.
   switchScene(scenes[0]);
-
-})();
+});

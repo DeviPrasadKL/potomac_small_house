@@ -12,7 +12,7 @@
 
 <div id="pano"></div>
 
-<div id="sceneList">
+<div id="sceneList" class="hidden">
   <ul class="scenes">
     
       <a href="javascript:void(0)" class="scene" data-id="0-dining-1f-">
@@ -162,24 +162,17 @@
   </ul>
 </div>
 
+<!-- <div id="toggleButton" class="floating-button">☰</div> -->
+
 <div id="titleBar">
   <h1 class="sceneName"></h1>
 </div>
 
-<a href="javascript:void(0)" id="autorotateToggle">
-  <img class="icon off" src="img/play.png">
-  <img class="icon on" src="img/pause.png">
-</a>
-
-<a href="javascript:void(0)" id="fullscreenToggle">
-  <img class="icon off" src="img/fullscreen.png">
-  <img class="icon on" src="img/windowed.png">
-</a>
-
-<a href="javascript:void(0)" id="sceneListToggle">
+<!-- <a href="javascript:void(0)" id="sceneListToggle">
   <img class="icon off" src="img/expand.png">
   <img class="icon on" src="img/collapse.png">
-</a>
+</a> -->
+
 
 <a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
   <img class="icon" src="img/up.png">
@@ -206,6 +199,34 @@
 
 <script src="data.js"></script>
 <script src="index.js"></script>
+
+<div id="roomsList" class="hidden">
+  <div class="rooms-container"></div>
+</div>
+
+<div id="floorsList" class="hidden">
+  <div class="floors-container"></div>
+</div>
+
+<nav class="nav-menu">
+  <div class="nav-item" id="autorotateToggle" tool-tip="Pause / Play">
+    <img class="icon off" src="img/play.png" alt="Play" tool-tip="Play">
+    <img class="icon on" src="img/pause.png" alt="Pause" tool-tip="Pause">
+  </div>
+  <div class="nav-item" id="roomsToggle" tool-tip="Rooms">
+    <img src="img/rooms.png" alt="Rooms">
+  </div>
+  <div class="nav-item" id="floorsToggle" tool-tip="Floors">
+    <img src="img/floors.png" alt="Floors">
+  </div>
+  <div class="nav-item" id="mapToggle" tool-tip="Floormap">
+    <img src="img/floormap.png" alt="Floormap">
+  </div>
+  <div class="nav-item" id="fullscreenToggle" tool-tip="Fullscreen">
+    <img class="icon off" src="img/fullscreen.png" alt="Fullscreen">
+    <img class="icon on" src="img/windowed.png" alt="Exit Fullscreen">
+  </div>
+</nav>
 
 </body>
 </html>
